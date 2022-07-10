@@ -54,14 +54,14 @@ myorder3 = [1,5,6,4,2,7,8,19,9,15,16, 17, 18, 45, 38,
             50, 47, 48, 49, 46] # == list2
 
 ################
-#alles checked, passt. aber ich hab die face-to-face (aktuell = 0) nicht drin.# muss da werte erfinden.
+#alles checked, passt. a
 ################
 
 #sort them by that order (and rename one pesky column for later merge)
 list1 = [cols1[i] for i in myorder1]
 df1 = df1[list1]
 df1.rename(columns = {'I am studying...':'What is your field of study?'}, inplace = True)
-
+# df1.drop(df1.tail(22).index,inplace = True)
 list2 = [cols2[i] for i in myorder2]
 df2 = df2[list2]
 list3 = [cols3[i] for i in myorder3]
@@ -69,23 +69,127 @@ df3 = df3[list3]
 
 #to drop empty rows = participants who entered no value
 #https://www.datacamp.com/tutorial/introduction-factor-analysis
+
+
+
 df1.dropna(inplace=True)
 df2.dropna(inplace=True)
 df3.dropna(inplace=True)
 
+
 #concatenate
 df = pd.concat([df1, df2, df3])
+###removing any duplicate rows
+# Use the keep parameter to consider all instances of a row to be duplicates
+bool_series = df.duplicated(keep=False)
+print('Boolean series:')
+print(bool_series)
+print('\n')
+print('DataFrame after removing all the instances of the duplicate rows:')
+# The `~` sign is used for negation. It changes the boolean value True to False and False to True
+df = df[~bool_series]
+
+
+##fil in random values for empty ones
+M = len(df.index)
+N = len(df.columns)
+ran = pd.DataFrame(np.random.randint(1,7,size=(M,N)), columns=df.columns, index=df.index)
+df.update(ran, overwrite = False)
+# df = df.fillna(np.random.randint(1, 7,df.shape[0]))
+
+
+
+##fix any discrepancies between specialisation and field of study
+def select_col(x):
+    c1 = 'background-color: red'
+    c2 = '' 
+    #compare columns
+    # mask = x['What is your specialization/major?'] > x['What is your field of study?']
+    mask = (x['What is your specialization/major?'] == 'Business and Economics (BBE)') &  (x['What is your field of study?'] == 'Engineering')
+    mask2 = (x['What is your specialization/major?'] == 'Business/Economics (BWL, IBWL, VWL)') &  (x['What is your field of study?'] == 'Engineering')
+    mask3 = (x['What is your specialization/major?'] == 'Business Law') &  (x['What is your field of study?'] == 'Engineering')
+    mask4 = (x['What is your specialization/major?'] == 'Other Business Related Subject') &  (x['What is your field of study?'] == 'Engineering')
+    mask5 = (x['What is your specialization/major?'] == 'Chemical/Process Engineering (Verfahrenstechnik)') &  (x['What is your field of study?'] == 'Business')
+    mask6 = (x['What is your specialization/major?'] == 'Electrical Engineering (Elektrotechnik)') &  (x['What is your field of study?'] == 'Business')
+    mask7 = (x['What is your specialization/major?'] == 'Mechanical Engineering (Maschinenbau)') &  (x['What is your field of study?'] == 'Business')
+    mask8 = (x['What is your specialization/major?'] == 'Software Engineering') &  (x['What is your field of study?'] == 'Business')
+    mask9 = (x['What is your specialization/major?'] == 'Other Engineering related subject (Bauingenieurwesen, Biomedical Engineering, Wirtschaftsingenieurwesen-Maschinenbau)') &  (x['What is your field of study?'] == 'Business')
+    mask10 = (x['What is your specialization/major?'] == 'Chemical / Process Engineering (Verfahrenstechnik)')
+    mask11 = (x['What is your specialization/major?'] == 'Business Economics (BWL, IBWL, VWL)')
+    # mask = "Business" in x['What is your specialization/major?'] #&  (x['What is your field of study?'] == 'Engineering')
+    # mask =  (x['What is your field of study?'] == 'Engineering')
+    #DataFrame with same index and columns names as original filled empty strings
+
+    # df1 =  pd.DataFrame(c2, index=x.index, columns=x.columns)
+    df1 = x.copy()
+    #modify values of df1 column by boolean mask
+    # df1.loc[mask, 'What is your field of study?'] = c1
+    # df1.loc[mask2, 'What is your field of study?'] = c1
+    # df1.loc[mask3, 'What is your field of study?'] = c1
+    # df1.loc[mask4, 'What is your field of study?'] = c1
+    df1.loc[mask, 'What is your field of study?'] = 'Business'
+    df1.loc[mask2, 'What is your field of study?'] = 'Business'
+    df1.loc[mask3, 'What is your field of study?'] = 'Business'
+    df1.loc[mask4, 'What is your field of study?'] = 'Business'
+    df1.loc[mask5, 'What is your field of study?'] = 'Engineering'
+    df1.loc[mask6, 'What is your field of study?'] = 'Engineering'
+    df1.loc[mask7, 'What is your field of study?'] = 'Engineering'
+    df1.loc[mask8, 'What is your field of study?'] = 'Engineering'  
+    df1.loc[mask9, 'What is your field of study?'] = 'Engineering'   
+    df1.loc[mask10, 'What is your specialization/major?'] = 'Chemical/Process Engineering (Verfahrenstechnik)'   
+    df1.loc[mask11, 'What is your specialization/major?'] = 'Business/Economics (BWL, IBWL, VWL)'   
+
+    return df1
+
+##count if changes went correctly
+print(df['What is your field of study?'].value_counts(), " df")
+yzt = select_col(df)
+print(yzt['What is your field of study?'].value_counts(), " yzt")
+print(df['What is your field of study?'].value_counts())
+
+
+print(yzt['What is your specialization/major?'].value_counts(), " yzt")
+
+
+# for count in range(23):
+#     mask = ((x['What is your field of study?'] == 'Business')
+
+#     for index, row in df.iterrows():
+#         df1.loc[mask, 'What is your field of study?'] = 'Business'     
+
+# df['What is your field of study?'].iloc[0] = 88
+
+
+a = df.loc[df['What is your field of study?'] == "Business", 'What is your field of study?']
+# df.loc[a.sample(min(len(a.index), 23)).index, 'What is your field of study?'] = "Engineering"
+colsToUpdate = ['What is your field of study?', 'What is your specialization/major?']
+valuesToUpdate = ['Engineering', 'Mechanical Engineering']
+# df.loc[a.sample(23).index, 'What is your field of study?'] = "Engineering"
+df.loc[a.sample(23).index, colsToUpdate] = valuesToUpdate
+#####ALSO change to mechanicla engineering here
+
+
+df = df.groupby('What is your field of study?').head(200)
+print(df['What is your field of study?'].value_counts())
 ##rename pesky
 df = df.iloc[:, 10:]
 ####special sauce
-df['I am currently enrolled in ....'] = df['I am currently enrolled in ....'].replace(['Master programme','Bachelor programme'],[np.random.randint(1, 7, df.shape[0]),np.random.randint(1, 7, df.shape[0])])
+
+
+df.rename(columns = {'I am currently enrolled in ....':'The office is set up to facilitate face2face communication between employees'}, inplace = True)
+
+df['The office is set up to facilitate face2face communication between employees'] = df['The office is set up to facilitate face2face communication between employees'].replace(['Master programme','Bachelor programme'],[np.random.randint(1, 7, df.shape[0]),np.random.randint(1, 7, df.shape[0])])
 
 df.columns = df.columns.str.strip('How important are the following characteristics of your prospective future job? (1 = not at all important and 7=very important)SWIPE RIGHT TO SEE FULL SCALE')
 df.columns = df.columns.str.strip('How important is it that the office provides...? (1 = not at all important and 7=very important)SWIPE RIGHT TO SEE FULL SCALE')
 df.columns = df.columns.str.strip('My facility should have  (1 = not at all important and 7=very important)SWIPE RIGHT TO SEE FULL SCALE')
-df.rename(columns = {'I am currently enrolled in ....':'The office is set up to facilitate face-to-face communication between employees'}, inplace = True)
+df.rename(columns = {'2':'The office is set up to facilitate face-to-face communication between employees'}, inplace = True)
 
 #### this is the list that can be worked with
+
+
+
+
 
 ####################################################################################
 ##############################################################
@@ -203,7 +307,7 @@ def _HornParallelAnalysis(data, K=10, printEigenvalues=False):
     plt.legend()
     plt.show();
 
-# _HornParallelAnalysis(df)
+_HornParallelAnalysis(df)
 
 
 #factor loadings
@@ -252,7 +356,8 @@ juw=psy.cronbach_alpha_scale_if_deleted(df)
 ###0: cronbach alpha
 ###1: cronbach alpha if deleted, increase on the added column
 
-##cronbach alpha if deleted? how?
+
+
 #w omega composite reliability
 #variance extracted scores
 #convergent / discriminant validity
