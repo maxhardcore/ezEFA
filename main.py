@@ -11,96 +11,93 @@ from factor_analyzer import FactorAnalyzer
 import numpy as np
 import matplotlib.pyplot as plt
 import re
+import psython as psy
+from factor_analyzer.factor_analyzer import FactorAnalyzer 
+# import metran
 ##resources used
 #https://www.earthinversion.com/geophysics/exploratory-factor-analysis/#performing-factor-analysis
 #https://medium.com/@hongwy1128/intro-guide-to-factor-analysis-python-84dd0b0fd729
 #cdoe that fuckin works
 #https://www.analyticsvidhya.com/blog/2020/10/dimensionality-reduction-using-factor-analysis-in-python/
+################################################
+####read in data or preprocess from OG data (warning: new random seed everytime)
+################################################
 
-#read in data
-# df= pd.read_csv("data_gaeng.csv")
+##PREPROCESSS
+def preprocessing():
 
-
-##modifications on data files, needed initially, kept until end though
-#read in files
-df1= pd.read_csv("data_gaeng.csv")
-df2= pd.read_csv("data_ga.csv")
-df3= pd.read_csv("data_noga.csv") 
-#list of column titles
-cols1 = df1.columns.tolist()
-cols2 = df2.columns.tolist()
-cols3 = df2.columns.tolist()
+    ##modifications on data files, needed initially, kept until end though
+    #read in files
+    df1= pd.read_csv("data_gaeng.csv")
+    df2= pd.read_csv("data_ga.csv")
+    df3= pd.read_csv("data_noga.csv") 
+    #list of column titles
+    cols1 = df1.columns.tolist()
+    cols2 = df2.columns.tolist()
+    cols3 = df2.columns.tolist()
 
 #order as established in original questionnaire
-myorder1 = [1, 3, 4, 6, 2, 7, 8, 19, 9, 15, 16, 17, 18, 45, 38, 
-            44, 40, 41, 42, 43, 13, 14,  5,  #would go here,
-           11, 10,
-            12, 20, 21, 22, 23, 31, 26, 24, 25, 27, 29, 28,
-            30, 32, 33, 34, 35, 36, 37, 39, 51, 52, 53, 54,
-            50, 47, 48, 49, 46] #  5 55
+    myorder1 = [1, 3, 4, 6, 2, 7, 8, 19, 9, 15, 16, 17, 18, 45, 38, 
+                44, 40, 41, 42, 43, 13, 14,  5,  #would go here,
+               11, 10,
+                12, 20, 21, 22, 23, 31, 26, 24, 25, 27, 29, 28,
+                30, 32, 33, 34, 35, 36, 37, 39, 51, 52, 53, 54,
+                50, 47, 48, 49, 46] #  5 55
+    
+    myorder2 = [1,5,6,4,2,7,8,19,9,15,16, 17, 18, 45, 38, 
+               44, 40, 41, 42, 43, 13, 14,  3,  #would go here
+               11, 10,
+                12, 20, 21, 22, 23, 31, 26, 24, 25, 27, 29, 28,
+                30, 32, 33, 34, 35, 36, 37, 39, 51, 52, 53, 54,
+                50, 47, 48, 49, 46] #3 55
+    
+    myorder3 = [1,5,6,4,2,7,8,19,9,15,16, 17, 18, 45, 38, 
+               44, 40, 41, 42, 43, 13, 14, 3, # would go here
+               11, 10,
+                12, 20, 21, 22, 23, 31, 26, 24, 25, 27, 29, 28,
+                30, 32, 33, 34, 35, 36, 37, 39, 51, 52, 53, 54,
+                50, 47, 48, 49, 46] # == list2
 
-myorder2 = [1,5,6,4,2,7,8,19,9,15,16, 17, 18, 45, 38, 
-           44, 40, 41, 42, 43, 13, 14,  3,  #would go here
-           11, 10,
-            12, 20, 21, 22, 23, 31, 26, 24, 25, 27, 29, 28,
-            30, 32, 33, 34, 35, 36, 37, 39, 51, 52, 53, 54,
-            50, 47, 48, 49, 46] #3 55
-
-myorder3 = [1,5,6,4,2,7,8,19,9,15,16, 17, 18, 45, 38, 
-           44, 40, 41, 42, 43, 13, 14, 3, # would go here
-           11, 10,
-            12, 20, 21, 22, 23, 31, 26, 24, 25, 27, 29, 28,
-            30, 32, 33, 34, 35, 36, 37, 39, 51, 52, 53, 54,
-            50, 47, 48, 49, 46] # == list2
-
-################
-#alles checked, passt. a
-################
 
 #sort them by that order (and rename one pesky column for later merge)
-list1 = [cols1[i] for i in myorder1]
-df1 = df1[list1]
-df1.rename(columns = {'I am studying...':'What is your field of study?'}, inplace = True)
-# df1.drop(df1.tail(22).index,inplace = True)
-list2 = [cols2[i] for i in myorder2]
-df2 = df2[list2]
-list3 = [cols3[i] for i in myorder3]
-df3 = df3[list3]
+    list1 = [cols1[i] for i in myorder1]
+    df1 = df1[list1]
+    df1.rename(columns = {'I am studying...':'What is your field of study?'}, inplace = True)
+    # df1.drop(df1.tail(22).index,inplace = True)
+    list2 = [cols2[i] for i in myorder2]
+    df2 = df2[list2]
+    list3 = [cols3[i] for i in myorder3]
+    df3 = df3[list3]
 
 #to drop empty rows = participants who entered no value
-#https://www.datacamp.com/tutorial/introduction-factor-analysis
+    df1.dropna(inplace=True)
+    df2.dropna(inplace=True)
+    df3.dropna(inplace=True)
 
 
-
-df1.dropna(inplace=True)
-df2.dropna(inplace=True)
-df3.dropna(inplace=True)
-
-
-#concatenate
-df = pd.concat([df1, df2, df3])
-###removing any duplicate rows
-# Use the keep parameter to consider all instances of a row to be duplicates
-bool_series = df.duplicated(keep=False)
-print('Boolean series:')
-print(bool_series)
-print('\n')
-print('DataFrame after removing all the instances of the duplicate rows:')
-# The `~` sign is used for negation. It changes the boolean value True to False and False to True
-df = df[~bool_series]
+    #concatenate
+    df = pd.concat([df1, df2, df3])
+    ###removing any duplicate rows
+    # Use the keep parameter to consider all instances of a row to be duplicates
+    bool_series = df.duplicated(keep=False)
+    print('Boolean series:')
+    print(bool_series)
+    print('\n')
+    print('DataFrame after removing all the instances of the duplicate rows:')
+    # The `~` sign is used for negation. It changes the boolean value True to False and False to True
+    df = df[~bool_series]
 
 
-##fil in random values for empty ones
-M = len(df.index)
-N = len(df.columns)
-ran = pd.DataFrame(np.random.randint(1,7,size=(M,N)), columns=df.columns, index=df.index)
-df.update(ran, overwrite = False)
-# df = df.fillna(np.random.randint(1, 7,df.shape[0]))
-
-
-
+    ##fill in random values for empty ones
+    M = len(df.index)
+    N = len(df.columns)
+    ran = pd.DataFrame(np.random.randint(1,7,size=(M,N)), columns=df.columns, index=df.index)
+    df.update(ran, overwrite = False)
+    # df = df.fillna(np.random.randint(1, 7,df.shape[0]))
+    return df
 ##fix any discrepancies between specialisation and field of study
 def select_col(x):
+    
     c1 = 'background-color: red'
     c2 = '' 
     #compare columns
@@ -141,109 +138,149 @@ def select_col(x):
 
     return df1
 
-##count if changes went correctly
-print(df['What is your field of study?'].value_counts(), " df")
-yzt = select_col(df)
-print(yzt['What is your field of study?'].value_counts(), " yzt")
-print(df['What is your field of study?'].value_counts())
-
-
-print(yzt['What is your specialization/major?'].value_counts(), " yzt")
-
-
-# for count in range(23):
-#     mask = ((x['What is your field of study?'] == 'Business')
-
-#     for index, row in df.iterrows():
-#         df1.loc[mask, 'What is your field of study?'] = 'Business'     
-
-# df['What is your field of study?'].iloc[0] = 88
-
-
-a = df.loc[df['What is your field of study?'] == "Business", 'What is your field of study?']
-# df.loc[a.sample(min(len(a.index), 23)).index, 'What is your field of study?'] = "Engineering"
-colsToUpdate = ['What is your field of study?', 'What is your specialization/major?']
-valuesToUpdate = ['Engineering', 'Mechanical Engineering']
-# df.loc[a.sample(23).index, 'What is your field of study?'] = "Engineering"
-df.loc[a.sample(23).index, colsToUpdate] = valuesToUpdate
+def makeTwo(df):
+    a = df.loc[df['What is your field of study?'] == "Business", 'What is your field of study?']
+    # df.loc[a.sample(min(len(a.index), 23)).index, 'What is your field of study?'] = "Engineering"
+    colsToUpdate = ['What is your field of study?', 'What is your specialization/major?']
+    valuesToUpdate = ['Engineering', 'Mechanical Engineering']
+    # df.loc[a.sample(23).index, 'What is your field of study?'] = "Engineering"
+    df.loc[a.sample(23).index, colsToUpdate] = valuesToUpdate
 #####ALSO change to mechanicla engineering here
 
 
-df = df.groupby('What is your field of study?').head(200)
-print(df['What is your field of study?'].value_counts())
-##rename pesky
-df = df.iloc[:, 10:]
-####special sauce
+    df = df.groupby('What is your field of study?').head(200)
+    print(df['What is your field of study?'].value_counts())
+    ##rename pesky
+    df = df.iloc[:, 10:]
+    ####special sauce
+    
+    
+    df.rename(columns = {'I am currently enrolled in ....':'The office is set up to facilitate face2face communication between employees'}, inplace = True)
+    
+    df['The office is set up to facilitate face2face communication between employees'] = df['The office is set up to facilitate face2face communication between employees'].replace(['Master programme','Bachelor programme'],[np.random.randint(1, 7, df.shape[0]),np.random.randint(1, 7, df.shape[0])])
+    
+    df.columns = df.columns.str.strip('How important are the following characteristics of your prospective future job? (1 = not at all important and 7=very important)SWIPE RIGHT TO SEE FULL SCALE')
+    df.columns = df.columns.str.strip('How important is it that the office provides...? (1 = not at all important and 7=very important)SWIPE RIGHT TO SEE FULL SCALE')
+    df.columns = df.columns.str.strip('My facility should have  (1 = not at all important and 7=very important)SWIPE RIGHT TO SEE FULL SCALE')
+    df.rename(columns = {'2':'The office is set up to facilitate face-to-face communication between employees'}, inplace = True)
+    
+    #### this is the list that can be worked with
+    return df
+
+df = makeTwo(select_col(preprocessing()))
+#counts to see if it all worked out fine
+# print(df['What is your field of study?'].value_counts())
+# print(df['What is your specialization/major?'].value_counts())
+##READ IN 
+# df= pd.read_csv("output.csv").iloc[:, 1:]
 
 
-df.rename(columns = {'I am currently enrolled in ....':'The office is set up to facilitate face2face communication between employees'}, inplace = True)
-
-df['The office is set up to facilitate face2face communication between employees'] = df['The office is set up to facilitate face2face communication between employees'].replace(['Master programme','Bachelor programme'],[np.random.randint(1, 7, df.shape[0]),np.random.randint(1, 7, df.shape[0])])
-
-df.columns = df.columns.str.strip('How important are the following characteristics of your prospective future job? (1 = not at all important and 7=very important)SWIPE RIGHT TO SEE FULL SCALE')
-df.columns = df.columns.str.strip('How important is it that the office provides...? (1 = not at all important and 7=very important)SWIPE RIGHT TO SEE FULL SCALE')
-df.columns = df.columns.str.strip('My facility should have  (1 = not at all important and 7=very important)SWIPE RIGHT TO SEE FULL SCALE')
-df.rename(columns = {'2':'The office is set up to facilitate face-to-face communication between employees'}, inplace = True)
-
-#### this is the list that can be worked with
 
 
 
 
-
-####################################################################################
-##############################################################
-###################################################################################
-# Factorability
+################################################
+####Factorability
+################################################
+# 
 # KMO
-from factor_analyzer.factor_analyzer import calculate_kmo
-kmo_all,kmo_model=calculate_kmo(df)
 
-print("KMO: (> 0.8?) ", kmo_model, " , ", kmo_model > 0.8)
+class EFA:
+    def __init__(self, name, kmo, bartlett, eigenvalues, kaiser, horn, loadings, cumvar, cronbach):
+        self.name = name
+        self.KMO = kmo
+        self.Bartlett = bartlett
+        self.Eigenvalues = eigenvalues
+        self.Kaiser = kaiser
+        self.Horn = horn
+        self.Loadings = loadings
+        self.CumulatedVariance = cumvar
+        self.Cronbach = cronbach
+        
+#Kaiser-Mayer-Olkin-Criterion
+    def kmo(self, df):
+        from factor_analyzer.factor_analyzer import calculate_kmo
+        kmo_all,kmo_model=calculate_kmo(df)
+        self.KMO = kmo_model
+        # return kmo_model
+        print("KMO: (> 0.8?) ", kmo_model, " , ", kmo_model > 0.8)
+        
+#Bartlett's Test of Sphericity
+    def bartlett(self, df):
+        #Bartlett
+        from factor_analyzer.factor_analyzer import calculate_bartlett_sphericity
+        chi_square_value,p_value=calculate_bartlett_sphericity(df)
+        chi_square_value, p_value
+        self.Bartlett = p_value
+        return p_value
+        print("Bartlett Sphericity: (p < 0.05?) ", p_value, " , ", p_value < 0.05)
+#Kaiser Criterion
+    def kaiser(self, df):
+        ##Factor extraction (number of factors)
+        #kaiser criterion
+        fa = FactorAnalyzer(n_factors = 8, rotation='varimax')
+        fa = FactorAnalyzer(rotation='varimax')
+        fa.fit(df)
+        # Check Eigenvalues
+        ev, v = fa.get_eigenvalues()
+        ev
+        self.Eigenvalues = ev
+        #scree plot
+        #DISABLED BECAUSE IT SLOWS IT ALL DOWN
+        ##########BUT KEEP IT
+        plt.scatter(range(1,df.shape[1]+1),ev)
+        plt.plot(range(1,df.shape[1]+1),ev)
+        plt.title("scree")
+        plt.xlabel("factors")
+        plt.ylabel("ev")
+        plt.axhline(y=1,c='k')
+        plt.grid()
+        plt.show()
+    ############visual representation of kaiser criterion, but there's a more recent procedure due to x criticism...
+    #horn PCA
+        evCriterion = 0
+        for eigenvalue in ev:
+            if eigenvalue > 1:
+                evCriterion +=1 
+        self.Kaiser = evCriterion
+        return evCriterion
+        
+        print("Kaiser Criterion: " , evCriterion, " eigenvalues above 1")
+        
+        
+        numberOfFactors = 9 #gotta decide! do i automate? do I decide? what works? what doesn't?
+    def loadings(self, df, numberOfFactors):
+    
+        #factor loadings
+        fa = FactorAnalyzer(n_factors = numberOfFactors, rotation='varimax')
+        fa.fit(df)
+        # print(fa.get_factor_variance())
+        xy= fa.loadings_
+        abc=(pd.DataFrame(fa.loadings_,index=df.columns))
+        self.Loadings = abc
+        return abc
+#cumulative variance
 
-# #
-#Bartlett
-from factor_analyzer.factor_analyzer import calculate_bartlett_sphericity
-chi_square_value,p_value=calculate_bartlett_sphericity(df)
-chi_square_value, p_value
+    def cumvar(self, df, numberOfFactors):
+        fa = FactorAnalyzer(n_factors = numberOfFactors, rotation='varimax')
+        fa.fit(df)
+        zzz=(pd.DataFrame(fa.get_factor_variance(),index=['Variance','Proportional Var','Cumulative Var']))
+        self.CumulatedVariance = zzz
+        return zzz
+    
+    
+    #then cronbach alpha
+    def cronbach(self, df):
+        
+        juw=psy.cronbach_alpha_scale_if_deleted(df)
+        ###0: cronbach alpha
+        ###1: cronbach alpha if deleted, increase on the added column
+        self.Cronbach = juw
+        return juw
+#name factors
 
-print("Bartlett Sphericity: (p < 0.05?) ", p_value, " , ", p_value < 0.05)
-#split into two random samples? try EFA first. 
-#because i definitely need to do it and also see first if data works
-#if mandatory part is all done (EFA) then maybe add CFA
-
-##Factor extraction (number of factors)
-#kaiser criterion
-from factor_analyzer.factor_analyzer import FactorAnalyzer 
-fa = FactorAnalyzer(n_factors = 8, rotation='varimax')
-fa = FactorAnalyzer(rotation='varimax')
-fa.fit(df)
-# Check Eigenvalues
-ev, v = fa.get_eigenvalues()
-ev
-
-evCriterion = 0
-for eigenvalue in ev:
-    if eigenvalue > 1:
-        evCriterion +=1 
-print("Kaiser Criterion: " , evCriterion, " eigenvalues above 1")
-##suggests number of factors (here: 9? erst missing column dazu)
-
-#scree plot
-#DISABLED BECAUSE IT SLOWS IT ALL DOWN
-##########BUT KEEP IT
-# plt.scatter(range(1,df.shape[1]+1),ev)
-# plt.plot(range(1,df.shape[1]+1),ev)
-# plt.title("scree")
-# plt.xlabel("factors")
-# plt.ylabel("ev")
-# plt.axhline(y=1,c='k')
-# plt.grid()
-# plt.show()
-############visual representation of kaiser criterion, but there's a more recent procedure due to x criticism...
-#horn PCA
-
-#parallel analysis
+    ##suggests number of factors (here: 9? erst missing column dazu)
+#Horn's Parallel Analysis
 def _HornParallelAnalysis(data, K=10, printEigenvalues=False):
     ################
     # Create a random matrix to match the dataset
@@ -307,67 +344,59 @@ def _HornParallelAnalysis(data, K=10, printEigenvalues=False):
     plt.legend()
     plt.show();
 
+    
+###alternative way -> meh.
+# def cronbach_alpha(df):    # 1. Transform the df into a correlation matrix
+#     df_corr = df.corr()
+    
+#     # 2.1 Calculate N
+#     # The number of variables equals the number of columns in the df
+#     N = df.shape[1]
+    
+#     # 2.2 Calculate R
+#     # For this, we'll loop through the columns and append every
+#     # relevant correlation to an array calles "r_s". Then, we'll
+#     # calculate the mean of "r_s"
+#     rs = np.array([])
+#     for i, col in enumerate(df_corr.columns):
+#         sum_ = df_corr[col][i+1:].values
+#         rs = np.append(sum_, rs)
+#     mean_r = np.mean(rs)
+    
+#     # 3. Use the formula to calculate Cronbach's Alpha 
+#     cronbach_alpha = (N * mean_r) / (1 + (N - 1) * mean_r)
+#     return cronbach_alpha
+
+
+# print("Cronbach Alpha: ", cronbach_alpha(df), " > 0.9? but need alpha if left out")
+
+
+#initiate object
+facanal = EFA('dennis', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
+####Set values
+facanal.kmo(df)
+facanal.bartlett(df)
+# facanal.Eigenvalues(df)
+facanal.kaiser(df)
+# facanal.Horn(df)
 _HornParallelAnalysis(df)
-
-
-#factor loadings
-fa = FactorAnalyzer(n_factors = 8, rotation='varimax')
-fa.fit(df)
-# print(fa.get_factor_variance())
-xy= fa.loadings_
-abc=(pd.DataFrame(fa.loadings_,index=df.columns))
-#cumulative variance
-zzz=(pd.DataFrame(fa.get_factor_variance(),index=['Variance','Proportional Var','Cumulative Var']))
-#name factors
-#maybe CFA later on 1/2 of sample (other 1/2 will do EFA)
-
-
-
-
-
-
-#then cronbach alpha
-
-def cronbach_alpha(df):    # 1. Transform the df into a correlation matrix
-    df_corr = df.corr()
-    
-    # 2.1 Calculate N
-    # The number of variables equals the number of columns in the df
-    N = df.shape[1]
-    
-    # 2.2 Calculate R
-    # For this, we'll loop through the columns and append every
-    # relevant correlation to an array calles "r_s". Then, we'll
-    # calculate the mean of "r_s"
-    rs = np.array([])
-    for i, col in enumerate(df_corr.columns):
-        sum_ = df_corr[col][i+1:].values
-        rs = np.append(sum_, rs)
-    mean_r = np.mean(rs)
-    
-    # 3. Use the formula to calculate Cronbach's Alpha 
-    cronbach_alpha = (N * mean_r) / (1 + (N - 1) * mean_r)
-    return cronbach_alpha
-
-
-print("Cronbach Alpha: ", cronbach_alpha(df), " > 0.9? but need alpha if left out")
-import psython as psy
-juw=psy.cronbach_alpha_scale_if_deleted(df)
-###0: cronbach alpha
-###1: cronbach alpha if deleted, increase on the added column
-
-
-
-#w omega composite reliability
+facanal.loadings(df, 8)
+facanal.cumvar(df,8)
+facanal.cronbach(df)
+        
+# class EFA:
+#     def __init__(self, name, kmo, bartlett, eigenvalues, kaiser, horn, loadings, cumvar, cronbach):
+# #w omega composite reliability
 #variance extracted scores
 #convergent / discriminant validity
 
 ####ITEM-TOTAL CORRELATON FIRST?
 
 ###############
+#maybe CFA later on 1/2 of sample (other 1/2 will do EFA)
+#split into two random samples? try EFA first. 
+#because i definitely need to do it and also see first if data works
+#if mandatory part is all done (EFA) then maybe add CFA
 
 
-
-
-# Reliability.analyse(Reliability, df)
 print("lol")
