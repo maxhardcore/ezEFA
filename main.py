@@ -171,12 +171,12 @@ def makeTwo(df):
     #### this is the list that can be worked with
     return df
 
-df = makeTwo(select_col(preprocessing()))
+# df = makeTwo(select_col(preprocessing()))
 #counts to see if it all worked out fine
 # print(df['What is your field of study?'].value_counts())
 # print(df['What is your specialization/major?'].value_counts())
 ##READ IN 
-# df= pd.read_csv("output.csv").iloc[:, 1:]
+df= pd.read_csv("olddf.csv").iloc[:, 1:]
 
 
 
@@ -252,7 +252,7 @@ class EFA:
         print("Kaiser Criterion: " , evCriterion, " eigenvalues above 1")
         
         
-        numberOfFactors = 9 #gotta decide! do i automate? do I decide? what works? what doesn't?
+        numberOfFactors = 8 #gotta decide! do i automate? do I decide? what works? what doesn't?
     def loadings(self, df, numberOfFactors):
     
         #factor loadings
@@ -325,7 +325,6 @@ def _HornParallelAnalysis(data, K=10, printEigenvalues=True):
     suggestedComponents = sum((dataEv[0] - avgComponentEigens) > 0)
     print('Parallel analysis suggests that the number of factors = ', suggestedFactors , ' and the number of components = ', suggestedComponents)
 
-
 #####https://www.kaggle.com/code/myzziah/league-analysis-factor-analysis-vs-pca/notebook####
 
     ################
@@ -351,6 +350,7 @@ def _HornParallelAnalysis(data, K=10, printEigenvalues=True):
     plt.show();
 
 
+# _HornParallelAnalysis(df)
 
 
 def Horny():
@@ -414,17 +414,20 @@ def Horny():
 #initiate object
 facanal = EFA('dennis', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
 ####Set values
+# _HornParallelAnalysis(df)
 facanal.kmo(df)
 facanal.bartlett(df)
 # facanal.Eigenvalues(df)
 facanal.kaiser(df)
 # facanal.Horn(df)
-_HornParallelAnalysis(df)
+# _HornParallelAnalysis(df)
 # Horny()
 facanal.loadings(df, 8)
 facanal.cumvar(df,8)
 facanal.cronbach(df)
-        
+# _HornParallelAnalysis(df)
+datahorn = pd.read_csv("olddf.csv").iloc[:, 1:]
+_HornParallelAnalysis(datahorn)
 # class EFA:
 #     def __init__(self, name, kmo, bartlett, eigenvalues, kaiser, horn, loadings, cumvar, cronbach):
 # #w omega composite reliability
