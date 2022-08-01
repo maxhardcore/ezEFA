@@ -270,11 +270,11 @@ class EFA:
         self.Loadings = abc
         ####drawing it nicely
 
-        # x_labels = ['Factor ' + str(i) for i in range(1,numberOfFactors+1)]
-        # y_labels = df.columns.tolist()
-        # sns.set(font_scale=0.5)
-        # plt.title('Loading Factors - ' + str(numberOfFactors))
-        # load = sns.heatmap(fa.loadings_,cmap="coolwarm", xticklabels = x_labels, yticklabels = y_labels, center=0, square=True, linewidths=.2,cbar_kws={"shrink": 0.5}, annot = True, annot_kws={"fontsize":1})
+        x_labels = ['Factor ' + str(i) for i in range(1,numberOfFactors+1)]
+        y_labels = df.columns.tolist()
+        sns.set(font_scale=0.5)
+        plt.title('Loading Factors - ' + str(numberOfFactors))
+        load = sns.heatmap(fa.loadings_,cmap="coolwarm", xticklabels = x_labels, yticklabels = y_labels, center=0, square=True, linewidths=.2,cbar_kws={"shrink": 0.5}, annot = True, annot_kws={"fontsize":1})
         return abc
 #cumulative variance
 
@@ -367,13 +367,13 @@ def _HornParallelAnalysis(data, K=10, printEigenvalues=True):
 
 def Communality(data,fa):
 
-    var_check = np.vstack((fa.get_communalities(), fa.get_uniquenesses(),np.array(fa.get_communalities() + fa.get_uniquenesses()))).tolist()
-    y_labels = ['Communality','Uniqueness', 'Total Variance']
-    x_labels = data.columns.tolist()
-    sns.set(font_scale=0.5)
-    plt.title('Communality-Uniqueness of Variables')
-    load = sns.heatmap(var_check,cmap="RdBu", xticklabels = x_labels, yticklabels = y_labels, center=0, square=True, linewidths=.2,cbar_kws={"shrink": 0.5}, annot = True, annot_kws={"fontsize":1})
-
+    # var_check = np.vstack((fa.get_communalities(), fa.get_uniquenesses(),np.array(fa.get_communalities() + fa.get_uniquenesses()))).tolist()
+    # y_labels = ['Communality','Uniqueness', 'Total Variance']
+    # x_labels = data.columns.tolist()
+    # sns.set(font_scale=0.5)
+    # plt.title('Communality-Uniqueness of Variables')
+    # load = sns.heatmap(var_check,cmap="RdBu", xticklabels = x_labels, yticklabels = y_labels, center=0, square=True, linewidths=.2,cbar_kws={"shrink": 0.5}, annot = True, annot_kws={"fontsize":1})
+    print("haha")
 
 
 
@@ -448,8 +448,8 @@ facanal.kaiser(df)
 # facanal.Horn(df)
 # _HornParallelAnalysis(df)
 # Horny()
-facanal.loadings(df, 8)
-facanal.cumvar(df,8)
+facanal.loadings(df, 9)
+facanal.cumvar(df,9)
 facanal.cronbach(df)
 # _HornParallelAnalysis(df)
 datahorn = pd.read_csv("olddf.csv").iloc[:, 1:]
@@ -469,4 +469,32 @@ _HornParallelAnalysis(datahorn)
 #if mandatory part is all done (EFA) then maybe add CFA
 
 
+
+#After this preliminary EFA, drop the one that doesn't fit (increases cronbach alpha if removed, low communality/high uniqueness,)
+cols = ['The office is set up to facilitate face-to-face communication between employees']
+df_fa = df.drop(cols, axis = 1)
+df_fa.to_csv('olddf_fa.csv')
+facanal_fa = EFA('dennis', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
+####Set values
+# _HornParallelAnalysis(df)
+facanal_fa.kmo(df_fa)
+facanal_fa.bartlett(df_fa)
+# facanal.Eigenvalues(df)
+facanal_fa.kaiser(df_fa)
+# facanal.Horn(df)
+# _HornParallelAnalysis(df)
+# Horny()
+facanal_fa.loadings(df_fa, 8)
+facanal_fa.cumvar(df_fa,8)
+facanal_fa.cronbach(df_fa)
+# _HornParallelAnalysis(df_fa)
+datahorn_fa = pd.read_csv("olddf_fa.csv").iloc[:, 1:]
+_HornParallelAnalysis(datahorn_fa)
+##"echte" FA: sagt Kaiser = Horn (9), see how I can do fix them into fitting factors
+facanal_fa.Loadings.columns = ['new_col0','new_col1', 'new_col2', 'new_col3', 'new_col4', 'new_col5', 'new_col6', 'new_col7']
+factorcount = 0
+for col in facanal_fa.Loadings.columns:
+    print("Factor ", factorcount)
+    print(facanal_fa.Loadings.nlargest(10, [col])[col])
+    factorcount+=1
 print("lol")
