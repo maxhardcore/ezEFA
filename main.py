@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import re
 import psython as psy
 from factor_analyzer.factor_analyzer import FactorAnalyzer 
-
+import seaborn as sns
 from sklearn.decomposition import PCA
 
 
@@ -227,19 +227,25 @@ class EFA:
         fa.fit(df)
         # Check Eigenvalues
         ev, v = fa.get_eigenvalues()
+        count = sum(1 for i in ev if i > 1)
+        print(count, " eigenvalues from Kaiser")
+        big_evs = sum(i for i in ev if i > 1)
+        total_evs = sum(ev)
+        print(big_evs, " total of EVs from Kaiser")
+        print(float(big_evs/total_evs), " cumulative variance of EVs from Kaiser")
         ev
         self.Eigenvalues = ev
         #scree plot
         #DISABLED BECAUSE IT SLOWS IT ALL DOWN
         ##########BUT KEEP IT
-        plt.scatter(range(1,df.shape[1]+1),ev)
-        plt.plot(range(1,df.shape[1]+1),ev)
-        plt.title("scree")
-        plt.xlabel("factors")
-        plt.ylabel("ev")
-        plt.axhline(y=1,c='k')
-        plt.grid()
-        plt.show()
+        # plt.scatter(range(1,df.shape[1]+1),ev)
+        # plt.plot(range(1,df.shape[1]+1),ev)
+        # plt.title("scree")
+        # plt.xlabel("factors")
+        # plt.ylabel("ev")
+        # plt.axhline(y=1,c='k')
+        # plt.grid()
+        # plt.show()
     ############visual representation of kaiser criterion, but there's a more recent procedure due to x criticism...
     #horn PCA
         evCriterion = 0
@@ -252,7 +258,7 @@ class EFA:
         print("Kaiser Criterion: " , evCriterion, " eigenvalues above 1")
         
         
-        numberOfFactors = 8 #gotta decide! do i automate? do I decide? what works? what doesn't?
+        numberOfFactors = evCriterion #gotta decide! do i automate? do I decide? what works? what doesn't?
     def loadings(self, df, numberOfFactors):
     
         #factor loadings
@@ -262,6 +268,13 @@ class EFA:
         xy= fa.loadings_
         abc=(pd.DataFrame(fa.loadings_,index=df.columns))
         self.Loadings = abc
+        ####drawing it nicely
+
+        # x_labels = ['Factor ' + str(i) for i in range(1,numberOfFactors+1)]
+        # y_labels = df.columns.tolist()
+        # sns.set(font_scale=0.5)
+        # plt.title('Loading Factors - ' + str(numberOfFactors))
+        # load = sns.heatmap(fa.loadings_,cmap="coolwarm", xticklabels = x_labels, yticklabels = y_labels, center=0, square=True, linewidths=.2,cbar_kws={"shrink": 0.5}, annot = True, annot_kws={"fontsize":1})
         return abc
 #cumulative variance
 
@@ -331,26 +344,37 @@ def _HornParallelAnalysis(data, K=10, printEigenvalues=True):
     ### Plot the eigenvalues against the number of variables
     ################
     # Line for eigenvalue 1
-    plt.plot([0, m+1], [1, 1], 'k--', alpha=0.3)
-    # For the random data - Components
-    plt.plot(range(1, m+1), avgComponentEigens, 'b', label='PC - random', alpha=0.4)
-    # For the Data - Components
-    plt.scatter(range(1, m+1), dataEv[0], c='b', marker='o')
-    plt.plot(range(1, m+1), dataEv[0], 'b', label='PC - data')
-    # For the random data - Factors
-    plt.plot(range(1, m+1), avgFactorEigens, 'g', label='FA - random', alpha=0.4)
-    # For the Data - Factors
-    plt.scatter(range(1, m+1), dataEv[1], c='g', marker='o')
-    plt.plot(range(1, m+1), dataEv[1], 'g', label='FA - data')
-    plt.title('Parallel Analysis Scree Plots', {'fontsize': 20})
-    plt.xlabel('Factors/Components', {'fontsize': 15})
-    plt.xticks(ticks=range(1, m+1), labels=range(1, m+1))
-    plt.ylabel('Eigenvalue', {'fontsize': 15})
-    plt.legend()
-    plt.show();
+    # plt.plot([0, m+1], [1, 1], 'k--', alpha=0.3)
+    # # For the random data - Components
+    # plt.plot(range(1, m+1), avgComponentEigens, 'b', label='PC - random', alpha=0.4)
+    # # For the Data - Components
+    # plt.scatter(range(1, m+1), dataEv[0], c='b', marker='o')
+    # plt.plot(range(1, m+1), dataEv[0], 'b', label='PC - data')
+    # # For the random data - Factors
+    # plt.plot(range(1, m+1), avgFactorEigens, 'g', label='FA - random', alpha=0.4)
+    # # For the Data - Factors
+    # plt.scatter(range(1, m+1), dataEv[1], c='g', marker='o')
+    # plt.plot(range(1, m+1), dataEv[1], 'g', label='FA - data')
+    # plt.title('Parallel Analysis Scree Plots', {'fontsize': 20})
+    # plt.xlabel('Factors/Components', {'fontsize': 15})
+    # plt.xticks(ticks=range(1, m+1), labels=range(1, m+1))
+    # plt.ylabel('Eigenvalue', {'fontsize': 15})
+    # plt.legend()
+    # plt.show();
 
 
 # _HornParallelAnalysis(df)
+
+def Communality(data,fa):
+
+    var_check = np.vstack((fa.get_communalities(), fa.get_uniquenesses(),np.array(fa.get_communalities() + fa.get_uniquenesses()))).tolist()
+    y_labels = ['Communality','Uniqueness', 'Total Variance']
+    x_labels = data.columns.tolist()
+    sns.set(font_scale=0.5)
+    plt.title('Communality-Uniqueness of Variables')
+    load = sns.heatmap(var_check,cmap="RdBu", xticklabels = x_labels, yticklabels = y_labels, center=0, square=True, linewidths=.2,cbar_kws={"shrink": 0.5}, annot = True, annot_kws={"fontsize":1})
+
+
 
 
 def Horny():
@@ -410,7 +434,9 @@ def Horny():
 
 # print("Cronbach Alpha: ", cronbach_alpha(df), " > 0.9? but need alpha if left out")
 
-
+fa = FactorAnalyzer(9, rotation="varimax")
+fa.fit(df)
+Communality(df,fa)
 #initiate object
 facanal = EFA('dennis', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
 ####Set values
