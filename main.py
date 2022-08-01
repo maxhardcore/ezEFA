@@ -13,6 +13,10 @@ import matplotlib.pyplot as plt
 import re
 import psython as psy
 from factor_analyzer.factor_analyzer import FactorAnalyzer 
+
+from sklearn.decomposition import PCA
+
+
 # import metran
 ##resources used
 #https://www.earthinversion.com/geophysics/exploratory-factor-analysis/#performing-factor-analysis
@@ -281,7 +285,7 @@ class EFA:
 
     ##suggests number of factors (here: 9? erst missing column dazu)
 #Horn's Parallel Analysis
-def _HornParallelAnalysis(data, K=10, printEigenvalues=False):
+def _HornParallelAnalysis(data, K=10, printEigenvalues=True):
     ################
     # Create a random matrix to match the dataset
     ################
@@ -322,6 +326,8 @@ def _HornParallelAnalysis(data, K=10, printEigenvalues=False):
     print('Parallel analysis suggests that the number of factors = ', suggestedFactors , ' and the number of components = ', suggestedComponents)
 
 
+#####https://www.kaggle.com/code/myzziah/league-analysis-factor-analysis-vs-pca/notebook####
+
     ################
     ### Plot the eigenvalues against the number of variables
     ################
@@ -344,7 +350,41 @@ def _HornParallelAnalysis(data, K=10, printEigenvalues=False):
     plt.legend()
     plt.show();
 
+
+
+
+def Horny():
+    # shapeMatrix = pd.read_csv("output.csv")
+    shapeMatrix = df
+    shapeMatrix.dropna(axis=1, inplace=True)
+    normalized_shapeMatrix=(shapeMatrix-shapeMatrix.mean())/shapeMatrix.std()
+
+    pca = PCA(shapeMatrix.shape[0]-1)
+    pca.fit(normalized_shapeMatrix)
+    transformedShapeMatrix = pca.transform(normalized_shapeMatrix)
+    #np.savetxt("pca_data.csv", pca.explained_variance_, delimiter=",")
     
+    random_eigenvalues = np.zeros(shapeMatrix.shape[0]-1)
+    for i in range(100):
+        random_shapeMatrix = pd.DataFrame(np.random.normal(0, 1, [shapeMatrix.shape[0], shapeMatrix.shape[1]]))
+        pca_random = PCA(shapeMatrix.shape[0]-1)
+        pca_random.fit(random_shapeMatrix)
+        transformedRandomShapeMatrix = pca_random.transform(random_shapeMatrix)
+        random_eigenvalues = random_eigenvalues+pca_random.explained_variance_ratio_
+    random_eigenvalues = random_eigenvalues / 100
+    
+    
+    #np.savetxt("pca_random.csv", random_eigenvalues, delimiter=",")
+    
+    plt.plot(pca.explained_variance_ratio_, '--bo', label='pca-data')
+    plt.plot(random_eigenvalues, '--rx', label='pca-random')
+    plt.legend()
+    plt.title('parallel analysis plot')
+    plt.show()
+
+
+
+
 ###alternative way -> meh.
 # def cronbach_alpha(df):    # 1. Transform the df into a correlation matrix
 #     df_corr = df.corr()
@@ -380,6 +420,7 @@ facanal.bartlett(df)
 facanal.kaiser(df)
 # facanal.Horn(df)
 _HornParallelAnalysis(df)
+# Horny()
 facanal.loadings(df, 8)
 facanal.cumvar(df,8)
 facanal.cronbach(df)
