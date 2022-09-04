@@ -154,40 +154,117 @@ def makeTwo(df):
 
     df = df.groupby('What is your field of study?').head(200)
     print(df['What is your field of study?'].value_counts())
-    ##rename pesky
-    df = df.iloc[:, 10:]
+    
+    #move Bach/master question to appropriate position
+    column_to_move = df.pop("I am currently enrolled in ....")
+    df.insert(2, "I am currently enrolled in ....", column_to_move)
+    
+    #insert face-to-face column with random integers 1 to 7 at appropriate position
+    df.insert(23, "The office is set up to facilitate face-to-face communication between employees", np.random.randint(1, 7, df.shape[0]))
+    
+    df.to_excel("workingQuestionnaire.xlsx")
+    
+    #cuts off non-numeric columns, is necessary for ease of mathematical operations in python
+    df = df.iloc[:, 11:]
     ####special sauce
     
+    #rename the column with "bach/master" to include question I did forget in online questionnaire
+    # df.rename(columns = {'I am currently enrolled in ....':'The office is set up to facilitate face2face communication between employees'}, inplace = True)
     
-    df.rename(columns = {'I am currently enrolled in ....':'The office is set up to facilitate face2face communication between employees'}, inplace = True)
+
+
     
-    df['The office is set up to facilitate face2face communication between employees'] = df['The office is set up to facilitate face2face communication between employees'].replace(['Master programme','Bachelor programme'],[np.random.randint(1, 7, df.shape[0]),np.random.randint(1, 7, df.shape[0])])
     
+    #fill with random values
+    #replaces both bach and master with np-array of values from 1 to 7
+    # df['The office is set up to facilitate face2face communication between employees'] = df['The office is set up to facilitate face2face communication between employees'].replace(['Master programme','Bachelor programme'],[np.random.randint(1, 7, df.shape[0]),np.random.randint(1, 7, df.shape[0])])
+    # #strip the length of column names, too hard to read
     df.columns = df.columns.str.strip('How important are the following characteristics of your prospective future job? (1 = not at all important and 7=very important)SWIPE RIGHT TO SEE FULL SCALE')
     df.columns = df.columns.str.strip('How important is it that the office provides...? (1 = not at all important and 7=very important)SWIPE RIGHT TO SEE FULL SCALE')
     df.columns = df.columns.str.strip('My facility should have  (1 = not at all important and 7=very important)SWIPE RIGHT TO SEE FULL SCALE')
-    df.rename(columns = {'2':'The office is set up to facilitate face-to-face communication between employees'}, inplace = True)
-    
+    # #rename "face2face" to "face-to-face"
+    df.rename(columns = {"-to-":'The office is set up to facilitate face-to-face communication between employees'}, inplace = True)
+    df.to_csv("workingQuestionnaire.csv")
     #### this is the list that can be worked with
     return df
 
+
+
+
+################################################
+####START OF EXPLORATORY FACTOR ANALYSIS
+################################################
+
+
+################################################
+####Read in pre-processed data
+################################################
 # df = makeTwo(select_col(preprocessing()))
 #counts to see if it all worked out fine
 # print(df['What is your field of study?'].value_counts())
 # print(df['What is your specialization/major?'].value_counts())
 ##READ IN 
-df= pd.read_csv("olddf.csv").iloc[:, 1:]
-
-
-
-
-
+df= pd.read_csv("workingQuestionnaire.csv").iloc[:, 1:]
+#maintaininga copy of originally read-in data, since data will be manipulated (rows dropped)
+dfcopy = df.copy()
 
 ################################################
-####Factorability
+####Preliminary analysis of correlations via correlation matrix
 ################################################
-# 
-# KMO
+
+#shows correlation matrix of data
+corrMatrix = df.corr()
+
+#counts number of occurrences of correlation <= 0.3 per row
+#'how often does each item show a correlation <= 0.3 with other items?'
+def count_values_in_range(series):
+    return series.le(0.3).sum()
+corrMatrix["n_values_in_range"] = corrMatrix.apply(
+    func=lambda row: count_values_in_range(row), axis=1)
+
+#dropping items with more than a specifc # of occurrences of above criterion
+#this cutoff was arbitrarily chosen by author as being 2/3 = 66.6%
+#Reason: 30 out of 44 "Likert-type"questions equals 68% of data
+
+#number of occurrences noted as comment
+dfPostDrop = df.drop(columns=['[There is a mandatory dresscode for employees]', #32
+                 'The office is set up to facilitate face-to-face communication between employees', #43
+                 '[Not being able to be reached after working hours]', #35,
+                 '[Workspace setup in which I am spatially separated from the workspaces of my colleagues]', #31
+                 '[To have access to generous, non-shared personal space at my workplace]', #32
+                '[Smoking area]', #31
+                ], axis = 1)
+corrMatrixPostDrop = dfPostDrop.corr()
+corrMatrixPostDrop["n_values_in_range"] = corrMatrixPostDrop.apply(
+    func=lambda row: count_values_in_range(row), axis=1)
+
+#highest # of occurences is now 25/38 = 65.8%
+
+
+
+
+####Outputting correlation matrix as either MatPlot or CSV
+
+
+# outputting as .csv
+# df.to_csv('LikertData_4corrMatrix_Original.csv')
+# dfPostDrop.to_csv('LikertData_4corrMatrix_PostDrop.csv')
+# corrMatrix.to_csv('LikertData_corrMatrix_Original.csv')
+# corrMatrixPostDrop.to_csv('LikertData_corrMatrix_PostDrop.csv')
+# corrMatrixPostDrop.to_excel('LikertData_corrMatrix_PostDrop.xlsx')
+
+####plotting:
+# fig, ax = plt.subplots()
+# fig.set_tight_layout(True)
+# ax.tick_params(axis='both', which='major', labelsize=5)
+# ax.tick_params(axis='both', which='minor', labelsize=5)
+# ax = sns.heatmap(corrMatrixPostDrop.corr(), annot=True, fmt='.2f', ax=ax, cmap="YlGnBu", linewidths = .5); 
+# ax.set_title("Post-drop correlation matrix", fontsize = 25)
+# plt.show()
+
+
+
+##Setting up a class which contains results of EFA
 
 class EFA:
     def __init__(self, name, kmo, bartlett, eigenvalues, kaiser, horn, loadings, cumvar, cronbach):
@@ -201,57 +278,68 @@ class EFA:
         self.CumulatedVariance = cumvar
         self.Cronbach = cronbach
         
-#Kaiser-Mayer-Olkin-Criterion
+        
+################################################
+####Factorability of post-drop-data: KMO & Bartlett
+################################################     
+
+
+
+#Kaiser-Mayer-Olkin-Criterion (KMO)
     def kmo(self, df):
         from factor_analyzer.factor_analyzer import calculate_kmo
-        kmo_all,kmo_model=calculate_kmo(df)
+        kmo_all,kmo_model=calculate_kmo(dfPostDrop)
         self.KMO = kmo_model
+        #Returns value of KMO criterion, should be above 0.8
         # return kmo_model
         print("KMO: (> 0.8?) ", kmo_model, " , ", kmo_model > 0.8)
         
 #Bartlett's Test of Sphericity
     def bartlett(self, df):
-        #Bartlett
         from factor_analyzer.factor_analyzer import calculate_bartlett_sphericity
-        chi_square_value,p_value=calculate_bartlett_sphericity(df)
+        chi_square_value,p_value=calculate_bartlett_sphericity(dfPostDrop)
         chi_square_value, p_value
         self.Bartlett = p_value
         return p_value
+    #Returns p-value of Bartlett's test, should be below 0.05
         print("Bartlett Sphericity: (p < 0.05?) ", p_value, " , ", p_value < 0.05)
+        
+        
+################################################
+####Factor Retention: number of factors considered 
+####(Part 1): via Kaiser Criterion, Scree Plot
+################################################    
+
+
 #Kaiser Criterion
     def kaiser(self, df):
-        ##Factor extraction (number of factors)
-        #kaiser criterion
-        # fa = FactorAnalyzer(rotation='varimax')
-        fa = FactorAnalyzer()
+
+        #apply to non rotated data
+        fa = FactorAnalyzer(rotation=None)
         fa.fit(df)
-        # Check Eigenvalues
+        # Check Eigenvalues for those exceeding 1
         ev, v = fa.get_eigenvalues()
         count = sum(1 for i in ev if i > 1)
-        print(count, " eigenvalues from Kaiser")
+        print(count, " eigenvalues above 1 - Kaiser")
         big_evs = sum(i for i in ev if i > 1)
         total_evs = sum(ev)
-        print(big_evs, " total of EVs from Kaiser")
-        print(float(big_evs/total_evs), " cumulative variance of EVs from Kaiser")
+        print(big_evs, " total of EVs - Kaiser")
+        print(float(big_evs/total_evs), " cumulative variance of EVs - Kaiser")
         ev
         self.Eigenvalues = ev
-        # scree plot
-        # DISABLED BECAUSE IT SLOWS IT ALL DOWN
-        #########BUT KEEP IT
         
-        plt.scatter(range(1,df.shape[1]+1),ev)
-        plt.plot(range(1,df.shape[1]+1),ev)
-        plt.title("Scree Plot")
-        plt.xlabel("Number of Factors")
-        plt.ylabel("Eigenvalue of Factor")
-        ax = plt.subplot(111, xlabel='x', ylabel='y', title='title')
-        for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
-             ax.get_xticklabels() + ax.get_yticklabels()):
-            item.set_fontsize(20)
-        plt.axhline(y=1,c='k')
-        plt.grid()
-        plt.show()
-    ############visual representation of kaiser criterion, but there's a more recent procedure due to x criticism...
+#Scree Plot
+#############disabled for now to speed up
+
+        
+        # plt.scatter(range(1,df.shape[1]+1),ev)
+        # plt.plot(range(1,df.shape[1]+1),ev)
+        # plt.title("Scree Plot")
+        # plt.xlabel("Number of Factors")
+        # plt.ylabel("Eigenvalue of Factor")
+        # plt.axhline(y=1,c='k')
+        # plt.grid()
+        # plt.show()
         evCriterion = 0
         for eigenvalue in ev:
             if eigenvalue > 1:
@@ -259,18 +347,18 @@ class EFA:
         self.Kaiser = evCriterion
         return evCriterion
         
-        print("Kaiser Criterion: " , evCriterion, " eigenvalues above 1")
         
-        
-        numberOfFactors = evCriterion #gotta decide! do i automate? do I decide? what works? what doesn't?
+#Factor Loadings        
     def loadings(self, df, numberOfFactors):
     
-        #factor loadings
-        fa = FactorAnalyzer(n_factors = numberOfFactors, rotation='promax')
+        #Comparing results for various rotations
+        # fa = FactorAnalyzer(n_factors = numberOfFactors, rotation='promax', method='ml')
+        fa = FactorAnalyzer(n_factors=numberOfFactors, method='ml', rotation='varimax')
         fa.fit(df)
         # print(fa.get_factor_variance())
         xy= fa.loadings_
         abc=(pd.DataFrame(fa.loadings_,index=df.columns))
+        print(abc)
         self.Loadings = abc
         ####drawing it nicely
 
@@ -301,14 +389,24 @@ class EFA:
 #name factors
 
     ##suggests number of factors (here: 9? erst missing column dazu)
+    
+    
+################################################
+####Factor Retention: number of factors considered 
+####(Part 2): via Horn's Parallel Analysis
+################################################  
+
 #Horn's Parallel Analysis
-def _HornParallelAnalysis(data, K=10, printEigenvalues=True):
+
+
+####printEigenvalues set to False, so it doesn't spam my screen for now
+def _HornParallelAnalysis(data, K=10, printEigenvalues=False):
     ################
     # Create a random matrix to match the dataset
     ################
     n, m = data.shape
     # Set the factor analysis parameters
-    fa = FactorAnalyzer(n_factors=1, method='minres', rotation=None, use_smc=True)
+    fa = FactorAnalyzer(n_factors=1, method='ml', rotation=None, use_smc=True)
     # Create arrays to store the values
     sumComponentEigens = np.empty(m)
     sumFactorEigens = np.empty(m)
@@ -342,32 +440,7 @@ def _HornParallelAnalysis(data, K=10, printEigenvalues=True):
     suggestedComponents = sum((dataEv[0] - avgComponentEigens) > 0)
     print('Parallel analysis suggests that the number of factors = ', suggestedFactors , ' and the number of components = ', suggestedComponents)
 
-#####https://www.kaggle.com/code/myzziah/league-analysis-factor-analysis-vs-pca/notebook####
 
-    ################
-    ### Plot the eigenvalues against the number of variables
-    ################
-    # Line for eigenvalue 1
-    # plt.plot([0, m+1], [1, 1], 'k--', alpha=0.3)
-    # # For the random data - Components
-    # plt.plot(range(1, m+1), avgComponentEigens, 'b', label='PC - random', alpha=0.4)
-    # # For the Data - Components
-    # plt.scatter(range(1, m+1), dataEv[0], c='b', marker='o')
-    # plt.plot(range(1, m+1), dataEv[0], 'b', label='PC - data')
-    # # For the random data - Factors
-    # plt.plot(range(1, m+1), avgFactorEigens, 'g', label='FA - random', alpha=0.4)
-    # # For the Data - Factors
-    # plt.scatter(range(1, m+1), dataEv[1], c='g', marker='o')
-    # plt.plot(range(1, m+1), dataEv[1], 'g', label='FA - data')
-    # plt.title('Parallel Analysis Scree Plots', {'fontsize': 20})
-    # plt.xlabel('Factors/Components', {'fontsize': 15})
-    # plt.xticks(ticks=range(1, m+1), labels=range(1, m+1))
-    # plt.ylabel('Eigenvalue', {'fontsize': 15})
-    # plt.legend()
-    # plt.show();
-
-
-# _HornParallelAnalysis(df)
 
 def Communality(data,fa):
 
@@ -409,9 +482,12 @@ def Horny():
     # plt.legend()
     # plt.title('parallel analysis plot')
     # plt.show()
-
-
-
+    
+    
+    
+#also, item-total correlation -> so it drops it
+# facanal = EFA('dennis', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
+# uh = facanal.Cronbach
 
 ###alternative way -> meh.
 # def cronbach_alpha(df):    # 1. Transform the df into a correlation matrix
@@ -438,26 +514,38 @@ def Horny():
 
 # print("Cronbach Alpha: ", cronbach_alpha(df), " > 0.9? but need alpha if left out")
 
+
+
+#
+
+
+
+
 fa = FactorAnalyzer(9, rotation="varimax")
 fa.fit(df)
 Communality(df,fa)
 #initiate object
 facanal = EFA('dennis', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
-####Set values
-# _HornParallelAnalysis(df)
-facanal.kmo(df)
-facanal.bartlett(df)
-# facanal.Eigenvalues(df)
-facanal.kaiser(df)
-# facanal.Horn(df)
-# _HornParallelAnalysis(df)
-# Horny()
-facanal.loadings(df, 9)
+
+####Set values to EFA object
+facanal.kmo(dfPostDrop)
+facanal.bartlett(dfPostDrop)
+facanal.kaiser(dfPostDrop)
+
+####Calculate loadings with number of factors
+facanal.loadings(dfPostDrop, 8)
 facanal.cumvar(df,9)
 facanal.cronbach(df)
 # _HornParallelAnalysis(df)
-datahorn = pd.read_csv("olddf.csv").iloc[:, 1:]
+
+
+
+##Run Horn's parallel analysis
+#####have to re-read the data, can always not show this line
+datahorn = pd.read_csv("workingQuestionnaire.csv").iloc[:, 1:]
 _HornParallelAnalysis(datahorn)
+
+
 # class EFA:
 #     def __init__(self, name, kmo, bartlett, eigenvalues, kaiser, horn, loadings, cumvar, cronbach):
 # #w omega composite reliability
@@ -475,30 +563,30 @@ _HornParallelAnalysis(datahorn)
 
 
 #After this preliminary EFA, drop the one that doesn't fit (increases cronbach alpha if removed, low communality/high uniqueness,)
-cols = ['The office is set up to facilitate face-to-face communication between employees']
-df_fa = df.drop(cols, axis = 1)
-df_fa.to_csv('olddf_fa.csv')
-facanal_fa = EFA('dennis', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
-####Set values
-# _HornParallelAnalysis(df)
-facanal_fa.kmo(df_fa)
-facanal_fa.bartlett(df_fa)
-# facanal.Eigenvalues(df)
-facanal_fa.kaiser(df_fa)
-# facanal.Horn(df)
-# _HornParallelAnalysis(df)
-# Horny()
-facanal_fa.loadings(df_fa, 8)
-facanal_fa.cumvar(df_fa,8)
-facanal_fa.cronbach(df_fa)
-# _HornParallelAnalysis(df_fa)
-datahorn_fa = pd.read_csv("olddf_fa.csv").iloc[:, 1:]
-_HornParallelAnalysis(datahorn_fa)
-##"echte" FA: sagt Kaiser = Horn (9), see how I can do fix them into fitting factors
-facanal_fa.Loadings.columns = ['new_col0','new_col1', 'new_col2', 'new_col3', 'new_col4', 'new_col5', 'new_col6', 'new_col7']
-factorcount = 0
-for col in facanal_fa.Loadings.columns:
-    print("Factor ", factorcount)
-    print(facanal_fa.Loadings.nlargest(10, [col])[col])
-    factorcount+=1
-print("lol")
+# cols = ['The office is set up to facilitate face-to-face communication between employees']
+# df_fa = df.drop(cols, axis = 1)
+# df_fa.to_csv('olddf_fa.csv')
+# facanal_fa = EFA('dennis', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
+# ####Set values
+# # _HornParallelAnalysis(df)
+# facanal_fa.kmo(df_fa)
+# facanal_fa.bartlett(df_fa)
+# # facanal.Eigenvalues(df)
+# facanal_fa.kaiser(df_fa)
+# # facanal.Horn(df)
+# # _HornParallelAnalysis(df)
+# # Horny()
+# facanal_fa.loadings(df_fa, 8)
+# facanal_fa.cumvar(df_fa,8)
+# facanal_fa.cronbach(df_fa)
+# # _HornParallelAnalysis(df_fa)
+# datahorn_fa = pd.read_csv("olddf_fa.csv").iloc[:, 1:]
+# _HornParallelAnalysis(datahorn_fa)
+# ##"echte" FA: sagt Kaiser = Horn (9), see how I can do fix them into fitting factors
+# facanal_fa.Loadings.columns = ['new_col0','new_col1', 'new_col2', 'new_col3', 'new_col4', 'new_col5', 'new_col6', 'new_col7']
+# factorcount = 0
+# for col in facanal_fa.Loadings.columns:
+#     print("Factor ", factorcount)
+#     print(facanal_fa.Loadings.nlargest(10, [col])[col])
+#     factorcount+=1
+# print("lol")
