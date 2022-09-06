@@ -868,19 +868,21 @@ facanalItemDrop7.loadings(dfItemDrop7, 8)
 ####Interpretation: naming the Factors
 ################################################
 #since all rotations give the same results, only varying numerically in factor loadings.
-#the author decided on promax rotation for the sake of the thesis
+#the author decided on OBLIMIN rotation for the sake of the thesis
 
 #dataframe of factor loadings
-factorLoadings = facanalItemDrop7.Loadings[0]
+factorLoadings = facanalItemDrop7.Loadings[1]
 #dropping name of rotation from df
-factorLoadings = factorLoadings.drop(columns=['promax',
+factorLoadings = factorLoadings.drop(columns=['oblimin',
                  ], axis = 1)
 
 #renaming columns
 factorLoadings.columns = ['Office climate', 'Provisions', 'Nature', 'Aesthetics', 
                           'Interpersonal communication', 'Solitary work', 'Open plan office', 'Autonomy']
-factorLoadings.to_excel("FactorLoadings.xlsx")
-factorLoadings.to_csv("FactorLoadings.csv")
+
+##outputting to excel and csv
+# factorLoadings.to_excel("FactorLoadings.xlsx")
+# factorLoadings.to_csv("FactorLoadings.csv")
 
 
 
