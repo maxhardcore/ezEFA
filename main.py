@@ -17,16 +17,6 @@ import seaborn as sns
 from sklearn.decomposition import PCA
 
 
-# import metran
-##resources used
-#https://www.earthinversion.com/geophysics/exploratory-factor-analysis/#performing-factor-analysis
-#https://medium.com/@hongwy1128/intro-guide-to-factor-analysis-python-84dd0b0fd729
-#cdoe that fuckin works
-#https://www.analyticsvidhya.com/blog/2020/10/dimensionality-reduction-using-factor-analysis-in-python/
-################################################
-####read in data or preprocess from OG data (warning: new random seed everytime)
-################################################
-
 ##PREPROCESSS
 def preprocessing():
 
@@ -205,8 +195,7 @@ def makeTwo(df):
 # print(df['What is your specialization/major?'].value_counts())
 ##READ IN 
 df= pd.read_csv("workingQuestionnaire.csv").iloc[:, 1:]
-#maintaininga copy of originally read-in data, since data will be manipulated (rows dropped)
-dfcopy = df.copy()
+
 
 ################################################
 ####Preliminary analysis of correlations via correlation matrix
@@ -239,9 +228,6 @@ corrMatrixPostDrop["n_values_in_range"] = corrMatrixPostDrop.apply(
     func=lambda row: count_values_in_range(row), axis=1)
 
 #highest # of occurences is now 25/38 = 65.8%
-
-#####CHECKING FOR NORMAL DISTRIBUTION - SO I CAN SEE IF MAX LIKELIHOOD IS VALID
-# dfPostDrop.hist()
 
 
 ####Outputting correlation matrix as either MatPlot or CSV
@@ -412,9 +398,7 @@ class EFA:
         ###1: cronbach alpha if deleted, increase on the added column
         self.Cronbach = juw
         return juw
-#name factors
 
-    ##suggests number of factors (here: 9? erst missing column dazu)
     
     
 ################################################
@@ -477,15 +461,11 @@ def Communality(data,fa):
     # sns.set(font_scale=0.5)
     # plt.title('Communality-Uniqueness of Variables')
     # load = sns.heatmap(var_check,cmap="RdBu", xticklabels = x_labels, yticklabels = y_labels, center=0, square=True, linewidths=.2,cbar_kws={"shrink": 0.5}, annot = True, annot_kws={"fontsize":1})
-    print("haha")
+    print("Communality")
 
 
-    
-    
-    
-#also, item-total correlation -> so it drops it
-# facanal = EFA('dennis', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
-# uh = facanal.Cronbach
+
+
 
 ###alternative way -> meh.
 # def cronbach_alpha(df):    # 1. Transform the df into a correlation matrix
@@ -522,9 +502,6 @@ def Communality(data,fa):
 
 
 
-# fa = FactorAnalyzer(9, rotation="varimax")
-# fa.fit(df)
-# Communality(df,fa)
 #initiate object
 print("")
 print("Initial run of EFA")
@@ -771,11 +748,7 @@ corrMatrixItemDrop7["n_values_in_range"] = corrMatrixItemDrop7.apply(
 
 
 
-#number of factors?
 
-####NOW EQUALS SEVEN WHEN IT WAS EIGHT BEFORE
-###I will just stick with 8 or it gets scuffed massively
-# _HornParallelAnalysis(dfItemDrop7)
 
 ####Set values to EFA object
 facanalItemDrop7 = EFA('Second cross-loading item dropped', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
@@ -786,80 +759,6 @@ facanalItemDrop7.kaiser(dfItemDrop7)
 
 ###Calculate loadings with number of factors from Parallel Analysis
 facanalItemDrop7.loadings(dfItemDrop7, 8)
-
-
-###THIS IS ONLY IF I DONT STICK WITH EIGHT
-#---------------#
-
-
-
-# ###item [Fixed seating arrangement in which I have a desk/workspace which only I can use] 
-# ###does not load to any factors
-# #re-run
-# print("")
-# print("Dropping non-loading item, re-running")
-# # dropping fifth item
-# dfItemDrop8 = dfItemDrop7.drop(columns=['[Relaxing space/hangout area]',
-#                 ], axis = 1)
-# #correlation matrix
-# corrMatrixItemDrop8 = dfItemDrop8.corr()
-# corrMatrixItemDrop8["n_values_in_range"] = corrMatrixItemDrop8.apply(
-#     func=lambda row: count_values_in_range(row), axis=1)
-
-
-
-
-# #number of factors?
-# # _HornParallelAnalysis(dfItemDrop8)
-
-# ####Set values to EFA object
-# facanalItemDrop8 = EFA('non-loading item dropped', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
-
-# facanalItemDrop8.kmo(dfItemDrop8)
-# facanalItemDrop8.bartlett(dfItemDrop8)
-# facanalItemDrop8.kaiser(dfItemDrop8)
-
-# ###Calculate loadings with number of factors from Parallel Analysis
-# facanalItemDrop8.loadings(dfItemDrop8, 7)
-
-
-
-# #---------------#
-
-
-
-# ###item [A low noise level in the office]
-# ###does not load to any factors
-# #re-run
-# print("")
-# print("Dropping non-loading item, re-running")
-# # dropping fifth item
-# dfItemDrop9 = dfItemDrop8.drop(columns=['[A low noise level in the office]',
-#                 ], axis = 1)
-# #correlation matrix
-# corrMatrixItemDrop9 = dfItemDrop9.corr()
-# corrMatrixItemDrop9["n_values_in_range"] = corrMatrixItemDrop9.apply(
-#     func=lambda row: count_values_in_range(row), axis=1)
-
-
-
-
-# #number of factors?
-# # _HornParallelAnalysis(dfItemDrop9)
-
-# ####Set values to EFA object
-# facanalItemDrop9 = EFA('non-loading item dropped', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
-
-# facanalItemDrop9.kmo(dfItemDrop9)
-# facanalItemDrop9.bartlett(dfItemDrop9)
-# facanalItemDrop9.kaiser(dfItemDrop9)
-
-# ###Calculate loadings with number of factors from Parallel Analysis
-# facanalItemDrop9.loadings(dfItemDrop9, 6)
-
-
-##https://stats.stackexchange.com/questions/266304/in-factor-analysis-or-in-pca-what-does-it-mean-a-factor-loading-greater-than
-##can be larger than 1!
 
 
 
@@ -883,63 +782,3 @@ factorLoadings.columns = ['Office climate', 'Provisions', 'Nature', 'Aesthetics'
 ##outputting to excel and csv
 # factorLoadings.to_excel("FactorLoadings.xlsx")
 # factorLoadings.to_csv("FactorLoadings.csv")
-
-
-
-
-
-
-
-
-
-
-
-# facanal.cumvar(df,9)
-# facanal.cronbach(df)
-# _HornParallelAnalysis(df)
-
-
-
-##Run Horn's parallel analysis
-#####have to re-read the data, can always not show this line
-# datahorn = pd.read_csv("workingQuestionnaire.csv").iloc[:, 1:]
-# _HornParallelAnalysis(dfPostDrop)
-
-
-
-# #w omega composite reliability
-#variance extracted scores
-#convergent / discriminant validity
-
-
-
-
-
-#After this preliminary EFA, drop the one that doesn't fit (increases cronbach alpha if removed, low communality/high uniqueness,)
-# cols = ['The office is set up to facilitate face-to-face communication between employees']
-# df_fa = df.drop(cols, axis = 1)
-# df_fa.to_csv('olddf_fa.csv')
-# facanal_fa = EFA('dennis', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
-# ####Set values
-# # _HornParallelAnalysis(df)
-# facanal_fa.kmo(df_fa)
-# facanal_fa.bartlett(df_fa)
-# # facanal.Eigenvalues(df)
-# facanal_fa.kaiser(df_fa)
-# # facanal.Horn(df)
-# # _HornParallelAnalysis(df)
-# # Horny()
-# facanal_fa.loadings(df_fa, 8)
-# facanal_fa.cumvar(df_fa,8)
-# facanal_fa.cronbach(df_fa)
-# # _HornParallelAnalysis(df_fa)
-# datahorn_fa = pd.read_csv("olddf_fa.csv").iloc[:, 1:]
-# _HornParallelAnalysis(datahorn_fa)
-# ##"echte" FA: sagt Kaiser = Horn (9), see how I can do fix them into fitting factors
-# facanal_fa.Loadings.columns = ['new_col0','new_col1', 'new_col2', 'new_col3', 'new_col4', 'new_col5', 'new_col6', 'new_col7']
-# factorcount = 0
-# for col in facanal_fa.Loadings.columns:
-#     print("Factor ", factorcount)
-#     print(facanal_fa.Loadings.nlargest(10, [col])[col])
-#     factorcount+=1
-# print("lol")
