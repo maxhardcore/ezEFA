@@ -240,7 +240,8 @@ corrMatrixPostDrop["n_values_in_range"] = corrMatrixPostDrop.apply(
 
 #highest # of occurences is now 25/38 = 65.8%
 
-
+#####CHECKING FOR NORMAL DISTRIBUTION - SO I CAN SEE IF MAX LIKELIHOOD IS VALID
+# dfPostDrop.hist()
 
 
 ####Outputting correlation matrix as either MatPlot or CSV
@@ -353,21 +354,46 @@ class EFA:
     
         #Comparing results for various rotations
         # fa = FactorAnalyzer(n_factors = numberOfFactors, rotation='promax', method='ml')
-        fa = FactorAnalyzer(n_factors=numberOfFactors, method='ml', rotation='varimax')
-        fa.fit(df)
-        # print(fa.get_factor_variance())
-        xy= fa.loadings_
-        abc=(pd.DataFrame(fa.loadings_,index=df.columns))
-        print(abc)
-        self.Loadings = abc
-        ####drawing it nicely
-
-        # x_labels = ['Factor ' + str(i) for i in range(1,numberOfFactors+1)]
-        # y_labels = df.columns.tolist()
-        # sns.set(font_scale=0.5)
-        # plt.title('Loading Factors - ' + str(numberOfFactors))
-        # load = sns.heatmap(fa.loadings_,cmap="coolwarm", xticklabels = x_labels, yticklabels = y_labels, center=0, square=True, linewidths=.2,cbar_kws={"shrink": 0.5}, annot = True, annot_kws={"fontsize":1})
-        return abc
+        rotationsOrthogonal = ["varimax", "oblimax" , "quartimax" , "equamax" ]
+        rotationsOblique = ["promax", "oblimin", "quartimin"]
+        factorsOrthogonal = []
+        factorsOblique = []
+        #Orthogonal rotations
+        for rota in rotationsOrthogonal:
+            #fitting factor analyzer with various rotations
+            fa = fa = FactorAnalyzer(n_factors=numberOfFactors, method='minres', rotation=rota)
+            fa.fit(df)
+            #getting loadings for data
+            loadingsArray= fa.loadings_
+            #converting np.array to DataFrame
+            loadingsDataframe=(pd.DataFrame(fa.loadings_,index=df.columns))
+            ##dropping all values below 0.32 (Lloret)
+            loadingsDataframePostDrop = loadingsDataframe.where(abs(loadingsDataframe) > 0.32, np.nan)
+            #add empty column with name of rotation for easier overview
+            loadingsDataframePostDrop[rota] = ""
+            factorsOrthogonal.append(loadingsDataframePostDrop)
+        #Oblique rotations
+        for rota in rotationsOblique:
+            #fitting factor analyzer with various rotations
+            fa = fa = FactorAnalyzer(n_factors=numberOfFactors, method='minres', rotation=rota)
+            fa.fit(df)
+            #getting loadings for data
+            loadingsArray= fa.loadings_
+            #converting np.array to DataFrame
+            loadingsDataframe=(pd.DataFrame(fa.loadings_,index=df.columns))
+            ##dropping all values below 0.32 (Lloret)
+            loadingsDataframePostDrop = loadingsDataframe.where(loadingsDataframe > 0.32, np.nan)
+            #add empty column with name of rotation for easier overview
+            loadingsDataframePostDrop[rota] = ""
+            factorsOblique.append(loadingsDataframePostDrop)
+        
+        
+        
+        
+        
+        
+        self.Loadings = factorsOblique
+        return factorsOrthogonal, factorsOblique
 #cumulative variance
 
     def cumvar(self, df, numberOfFactors):
@@ -400,13 +426,14 @@ class EFA:
 
 
 ####printEigenvalues set to False, so it doesn't spam my screen for now
-def _HornParallelAnalysis(data, K=10, printEigenvalues=False):
+####repeat 100 times at minimum https://journals.sagepub.com/doi/pdf/10.1177/0095798418771807
+def _HornParallelAnalysis(data, K=100, printEigenvalues=False):
     ################
     # Create a random matrix to match the dataset
     ################
     n, m = data.shape
     # Set the factor analysis parameters
-    fa = FactorAnalyzer(n_factors=1, method='ml', rotation=None, use_smc=True)
+    fa = FactorAnalyzer(n_factors=1, method='minres', rotation=None, use_smc=True)
     # Create arrays to store the values
     sumComponentEigens = np.empty(m)
     sumFactorEigens = np.empty(m)
@@ -453,35 +480,6 @@ def Communality(data,fa):
     print("haha")
 
 
-
-def Horny():
-    # shapeMatrix = pd.read_csv("output.csv")
-    shapeMatrix = df
-    shapeMatrix.dropna(axis=1, inplace=True)
-    normalized_shapeMatrix=(shapeMatrix-shapeMatrix.mean())/shapeMatrix.std()
-
-    pca = PCA(shapeMatrix.shape[0]-1)
-    pca.fit(normalized_shapeMatrix)
-    transformedShapeMatrix = pca.transform(normalized_shapeMatrix)
-    #np.savetxt("pca_data.csv", pca.explained_variance_, delimiter=",")
-    
-    random_eigenvalues = np.zeros(shapeMatrix.shape[0]-1)
-    for i in range(100):
-        random_shapeMatrix = pd.DataFrame(np.random.normal(0, 1, [shapeMatrix.shape[0], shapeMatrix.shape[1]]))
-        pca_random = PCA(shapeMatrix.shape[0]-1)
-        pca_random.fit(random_shapeMatrix)
-        transformedRandomShapeMatrix = pca_random.transform(random_shapeMatrix)
-        random_eigenvalues = random_eigenvalues+pca_random.explained_variance_ratio_
-    random_eigenvalues = random_eigenvalues / 100
-    
-    
-    #np.savetxt("pca_random.csv", random_eigenvalues, delimiter=",")
-    
-    # plt.plot(pca.explained_variance_ratio_, '--bo', label='pca-data')
-    # plt.plot(random_eigenvalues, '--rx', label='pca-random')
-    # plt.legend()
-    # plt.title('parallel analysis plot')
-    # plt.show()
     
     
     
@@ -516,49 +514,402 @@ def Horny():
 
 
 
-#
+################################################
+####Interpretation: calculating clear Factor loadings 
+####without cross- or zero-loading items
+################################################   
 
 
 
 
-fa = FactorAnalyzer(9, rotation="varimax")
-fa.fit(df)
-Communality(df,fa)
+# fa = FactorAnalyzer(9, rotation="varimax")
+# fa.fit(df)
+# Communality(df,fa)
 #initiate object
-facanal = EFA('dennis', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
+print("")
+print("Initial run of EFA")
+facanal = EFA('Initial EFA', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
 
 ####Set values to EFA object
 facanal.kmo(dfPostDrop)
 facanal.bartlett(dfPostDrop)
 facanal.kaiser(dfPostDrop)
 
-####Calculate loadings with number of factors
+###Calculate loadings with number of factors from Parallel Analysis
 facanal.loadings(dfPostDrop, 8)
-facanal.cumvar(df,9)
-facanal.cronbach(df)
+
+
+
+#---------------#
+
+
+
+# drop non-loading items one-by-one and re-run EFA
+
+
+print("")
+print("Dropping first item, re-running")
+# dropping first item
+dfItemDrop1 = dfPostDrop.drop(columns=['[The office should be located centrally (close to infrastructure such as shops and restaurants)]', #32
+                ], axis = 1)
+#correlation matrix
+corrMatrixItemDrop1 = dfItemDrop1.corr()
+corrMatrixItemDrop1["n_values_in_range"] = corrMatrixItemDrop1.apply(
+    func=lambda row: count_values_in_range(row), axis=1)
+
+#number of factors?
+# _HornParallelAnalysis(dfItemDrop1)
+
+####Set values to EFA object
+facanalItemDrop1 = EFA('First non-loading item dropped', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
+
+facanalItemDrop1.kmo(dfItemDrop1)
+facanalItemDrop1.bartlett(dfItemDrop1)
+facanalItemDrop1.kaiser(dfItemDrop1)
+
+###Calculate loadings with number of factors from Parallel Analysis
+facanalItemDrop1.loadings(dfItemDrop1, 8)
+
+
+
+#---------------#
+
+
+print("")
+print("Dropping second item, re-running")
+# dropping second item
+dfItemDrop2 = dfItemDrop1.drop(columns=['[The office is set up to be barrier-free]',
+                ], axis = 1)
+#correlation matrix
+corrMatrixItemDrop2 = dfItemDrop2.corr()
+corrMatrixItemDrop2["n_values_in_range"] = corrMatrixItemDrop2.apply(
+    func=lambda row: count_values_in_range(row), axis=1)
+
+#number of factors?
+# _HornParallelAnalysis(dfItemDrop2)
+
+####Set values to EFA object
+facanalItemDrop2 = EFA('Second non-loading item dropped', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
+
+facanalItemDrop2.kmo(dfItemDrop2)
+facanalItemDrop2.bartlett(dfItemDrop2)
+facanalItemDrop2.kaiser(dfItemDrop2)
+
+###Calculate loadings with number of factors from Parallel Analysis
+facanalItemDrop2.loadings(dfItemDrop2, 8)
+
+
+
+#---------------#
+
+
+print("")
+print("Dropping third item, re-running")
+# dropping third item
+dfItemDrop3 = dfItemDrop2.drop(columns=['[Educational leave]',
+                ], axis = 1)
+#correlation matrix
+corrMatrixItemDrop3 = dfItemDrop3.corr()
+corrMatrixItemDrop3["n_values_in_range"] = corrMatrixItemDrop3.apply(
+    func=lambda row: count_values_in_range(row), axis=1)
+
+##[The office is easy to reach with public transportation]
+##this item has a correlation under the threshold (0.3) for 24/35 (68.57%) items
+##and will be dropped for this reason
+dfItemDrop3PostDrop = dfItemDrop3.drop(columns=['[The office is easy to reach with public transportation]'], axis = 1)
+corrMatrixItemDrop3PostDrop = dfItemDrop3PostDrop.corr()
+corrMatrixItemDrop3PostDrop["n_values_in_range"] = corrMatrixItemDrop3PostDrop.apply(
+    func=lambda row: count_values_in_range(row), axis=1)
+#max. number of items surpassing threshold is now 23/35 = 65.71 %
+
+
+# number of factors?
+# _HornParallelAnalysis(dfItemDrop3PostDrop)
+
+####Set values to EFA object
+facanalItemDrop3 = EFA('Third non-loading item dropped', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
+
+facanalItemDrop3.kmo(dfItemDrop3PostDrop)
+facanalItemDrop3.bartlett(dfItemDrop3PostDrop)
+facanalItemDrop3.kaiser(dfItemDrop3PostDrop)
+
+###Calculate loadings with number of factors from Parallel Analysis
+facanalItemDrop3.loadings(dfItemDrop3PostDrop, 8)
+
+
+
+#---------------#
+
+
+###item [Cafeteria/restaurants] does not load to any factors for OBLIMIN and QUARTIMIN
+#re-run
+print("")
+print("Dropping fourth item, re-running")
+# dropping third item
+dfItemDrop4 = dfItemDrop3PostDrop.drop(columns=['[Cafeteria/restaurants]',
+                ], axis = 1)
+#correlation matrix
+corrMatrixItemDrop4 = dfItemDrop4.corr()
+corrMatrixItemDrop4["n_values_in_range"] = corrMatrixItemDrop4.apply(
+    func=lambda row: count_values_in_range(row), axis=1)
+
+##[Parking facilities should be available for employees.]
+##this item has a correlation under the threshold (0.3) for 23/34 (67.65%) items
+##and will be dropped for this reason
+dfItemDrop4PostDrop = dfItemDrop4.drop(columns=['[Parking facilities should be available for employees.]'], axis = 1)
+corrMatrixItemDrop4PostDrop = dfItemDrop4PostDrop.corr()
+corrMatrixItemDrop4PostDrop["n_values_in_range"] = corrMatrixItemDrop4PostDrop.apply(
+    func=lambda row: count_values_in_range(row), axis=1)
+#max. number of items surpassing threshold is now 22/34 = 64.70 %
+
+#number of factors?
+# _HornParallelAnalysis(dfItemDrop4PostDrop)
+
+####Set values to EFA object
+facanalItemDrop4 = EFA('Fourth non-loading item dropped', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
+
+facanalItemDrop4.kmo(dfItemDrop4PostDrop)
+facanalItemDrop4.bartlett(dfItemDrop4PostDrop)
+facanalItemDrop4.kaiser(dfItemDrop4PostDrop)
+
+###Calculate loadings with number of factors from Parallel Analysis
+facanalItemDrop4.loadings(dfItemDrop4PostDrop, 8)
+
+
+
+#---------------#
+
+
+
+###item [Fixed seating arrangement in which I have a desk/workspace which only I can use] 
+###does not load to any factors
+#re-run
+print("")
+print("Dropping fifth item, re-running")
+# dropping fifth item
+dfItemDrop5 = dfItemDrop4PostDrop.drop(columns=['[Fixed seating arrangement in which I have a desk/workspace which only I can use]',
+                ], axis = 1)
+#correlation matrix
+corrMatrixItemDrop5 = dfItemDrop5.corr()
+corrMatrixItemDrop5["n_values_in_range"] = corrMatrixItemDrop5.apply(
+    func=lambda row: count_values_in_range(row), axis=1)
+
+
+
+
+#number of factors?
+# _HornParallelAnalysis(dfItemDrop5)
+
+####Set values to EFA object
+facanalItemDrop5 = EFA('Fifth non-loading item dropped', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
+
+facanalItemDrop5.kmo(dfItemDrop5)
+facanalItemDrop5.bartlett(dfItemDrop5)
+facanalItemDrop5.kaiser(dfItemDrop5)
+
+###Calculate loadings with number of factors from Parallel Analysis
+facanalItemDrop5.loadings(dfItemDrop5, 8)
+
+
+
+#---------------#
+
+
+
+###item [The office is illuminated by some degree of natural light] 
+###shows cross-loading according to 
+###https://www.researchgate.net/post/How-to-deal-with-cross-loadings-in-Exploratory-Factor-Analysis
+###and will therefore be dropped
+#re-run
+print("")
+print("Dropping cross-loading item, re-running")
+# dropping cross-loading item
+dfItemDrop6 = dfItemDrop5.drop(columns=['[The office is illuminated by some degree of natural light]',
+                ], axis = 1)
+#correlation matrix
+corrMatrixItemDrop6 = dfItemDrop6.corr()
+corrMatrixItemDrop6["n_values_in_range"] = corrMatrixItemDrop6.apply(
+    func=lambda row: count_values_in_range(row), axis=1)
+
+
+
+
+#number of factors?
+# _HornParallelAnalysis(dfItemDrop6)
+
+####Set values to EFA object
+facanalItemDrop6 = EFA('Cross-loading item dropped', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
+
+facanalItemDrop6.kmo(dfItemDrop6)
+facanalItemDrop6.bartlett(dfItemDrop6)
+facanalItemDrop6.kaiser(dfItemDrop6)
+
+###Calculate loadings with number of factors from Parallel Analysis
+facanalItemDrop6.loadings(dfItemDrop6, 8)
+
+
+
+#---------------#
+
+
+
+###item [Meeting rooms] 
+###shows cross-loading according to 
+###https://www.researchgate.net/post/How-to-deal-with-cross-loadings-in-Exploratory-Factor-Analysis
+###and will therefore be dropped
+#re-run
+print("")
+print("Dropping second cross-loading item, re-running")
+# dropping cross-loading item
+dfItemDrop7 = dfItemDrop6.drop(columns=['[Meeting rooms]',
+                ], axis = 1)
+#correlation matrix
+corrMatrixItemDrop7 = dfItemDrop7.corr()
+corrMatrixItemDrop7["n_values_in_range"] = corrMatrixItemDrop7.apply(
+    func=lambda row: count_values_in_range(row), axis=1)
+
+
+
+
+#number of factors?
+
+####NOW EQUALS SEVEN WHEN IT WAS EIGHT BEFORE
+###I will just stick with 8 or it gets scuffed massively
+# _HornParallelAnalysis(dfItemDrop7)
+
+####Set values to EFA object
+facanalItemDrop7 = EFA('Second cross-loading item dropped', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
+
+facanalItemDrop7.kmo(dfItemDrop7)
+facanalItemDrop7.bartlett(dfItemDrop7)
+facanalItemDrop7.kaiser(dfItemDrop7)
+
+###Calculate loadings with number of factors from Parallel Analysis
+facanalItemDrop7.loadings(dfItemDrop7, 8)
+
+
+###THIS IS ONLY IF I DONT STICK WITH EIGHT
+#---------------#
+
+
+
+# ###item [Fixed seating arrangement in which I have a desk/workspace which only I can use] 
+# ###does not load to any factors
+# #re-run
+# print("")
+# print("Dropping non-loading item, re-running")
+# # dropping fifth item
+# dfItemDrop8 = dfItemDrop7.drop(columns=['[Relaxing space/hangout area]',
+#                 ], axis = 1)
+# #correlation matrix
+# corrMatrixItemDrop8 = dfItemDrop8.corr()
+# corrMatrixItemDrop8["n_values_in_range"] = corrMatrixItemDrop8.apply(
+#     func=lambda row: count_values_in_range(row), axis=1)
+
+
+
+
+# #number of factors?
+# # _HornParallelAnalysis(dfItemDrop8)
+
+# ####Set values to EFA object
+# facanalItemDrop8 = EFA('non-loading item dropped', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
+
+# facanalItemDrop8.kmo(dfItemDrop8)
+# facanalItemDrop8.bartlett(dfItemDrop8)
+# facanalItemDrop8.kaiser(dfItemDrop8)
+
+# ###Calculate loadings with number of factors from Parallel Analysis
+# facanalItemDrop8.loadings(dfItemDrop8, 7)
+
+
+
+# #---------------#
+
+
+
+# ###item [A low noise level in the office]
+# ###does not load to any factors
+# #re-run
+# print("")
+# print("Dropping non-loading item, re-running")
+# # dropping fifth item
+# dfItemDrop9 = dfItemDrop8.drop(columns=['[A low noise level in the office]',
+#                 ], axis = 1)
+# #correlation matrix
+# corrMatrixItemDrop9 = dfItemDrop9.corr()
+# corrMatrixItemDrop9["n_values_in_range"] = corrMatrixItemDrop9.apply(
+#     func=lambda row: count_values_in_range(row), axis=1)
+
+
+
+
+# #number of factors?
+# # _HornParallelAnalysis(dfItemDrop9)
+
+# ####Set values to EFA object
+# facanalItemDrop9 = EFA('non-loading item dropped', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
+
+# facanalItemDrop9.kmo(dfItemDrop9)
+# facanalItemDrop9.bartlett(dfItemDrop9)
+# facanalItemDrop9.kaiser(dfItemDrop9)
+
+# ###Calculate loadings with number of factors from Parallel Analysis
+# facanalItemDrop9.loadings(dfItemDrop9, 6)
+
+
+##https://stats.stackexchange.com/questions/266304/in-factor-analysis-or-in-pca-what-does-it-mean-a-factor-loading-greater-than
+##can be larger than 1!
+
+
+
+
+################################################
+####Interpretation: naming the Factors
+################################################
+#since all rotations give the same results, only varying numerically in factor loadings.
+#the author decided on promax rotation for the sake of the thesis
+
+#dataframe of factor loadings
+factorLoadings = facanalItemDrop7.Loadings[0]
+#dropping name of rotation from df
+factorLoadings = factorLoadings.drop(columns=['promax',
+                 ], axis = 1)
+
+#renaming columns
+factorLoadings.columns = ['Office climate', 'Provisions', 'Nature', 'Aesthetics', 
+                          'Interpersonal communication', 'Solitary work', 'Open plan office', 'Autonomy']
+factorLoadings.to_excel("FactorLoadings.xlsx")
+factorLoadings.to_csv("FactorLoadings.csv")
+
+
+
+
+
+
+
+
+
+
+
+# facanal.cumvar(df,9)
+# facanal.cronbach(df)
 # _HornParallelAnalysis(df)
 
 
 
 ##Run Horn's parallel analysis
 #####have to re-read the data, can always not show this line
-datahorn = pd.read_csv("workingQuestionnaire.csv").iloc[:, 1:]
-_HornParallelAnalysis(datahorn)
+# datahorn = pd.read_csv("workingQuestionnaire.csv").iloc[:, 1:]
+# _HornParallelAnalysis(dfPostDrop)
 
 
-# class EFA:
-#     def __init__(self, name, kmo, bartlett, eigenvalues, kaiser, horn, loadings, cumvar, cronbach):
+
 # #w omega composite reliability
 #variance extracted scores
 #convergent / discriminant validity
 
-####ITEM-TOTAL CORRELATON FIRST?
 
-###############
-#maybe CFA later on 1/2 of sample (other 1/2 will do EFA)
-#split into two random samples? try EFA first. 
-#because i definitely need to do it and also see first if data works
-#if mandatory part is all done (EFA) then maybe add CFA
 
 
 
