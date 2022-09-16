@@ -151,8 +151,8 @@ def makeTwo(df):
     
     #insert face-to-face column with random integers 1 to 7 at appropriate position
     df.insert(23, "The office is set up to facilitate face-to-face communication between employees", np.random.randint(1, 7, df.shape[0]))
-    
-    df.to_excel("workingQuestionnaire.xlsx")
+    df = df.sample(frac=1).reset_index(drop=True)
+    # df.to_excel("workingQuestionnaireSmpl.xlsx")
     
     #cuts off non-numeric columns, is necessary for ease of mathematical operations in python
     df = df.iloc[:, 11:]
@@ -174,7 +174,7 @@ def makeTwo(df):
     df.columns = df.columns.str.strip('My facility should have  (1 = not at all important and 7=very important)SWIPE RIGHT TO SEE FULL SCALE')
     # #rename "face2face" to "face-to-face"
     df.rename(columns = {"-to-":'The office is set up to facilitate face-to-face communication between employees'}, inplace = True)
-    df.to_csv("workingQuestionnaire.csv")
+    df.to_csv("workingQuestionnaireSmpl.csv")
     #### this is the list that can be worked with
     return df
 
@@ -185,18 +185,19 @@ def makeTwo(df):
 ####START OF EXPLORATORY FACTOR ANALYSIS
 ################################################
 
+##PRE-PROCESS DATA
+df = makeTwo(select_col(preprocessing()))
 
 ################################################
 ####Read in pre-processed data
 ################################################
-# df = makeTwo(select_col(preprocessing()))
-#counts to see if it all worked out fine
-# print(df['What is your field of study?'].value_counts())
-# print(df['What is your specialization/major?'].value_counts())
+
+
+
 ##READ IN 
-df= pd.read_csv("workingQuestionnaire.csv").iloc[:, 1:]
-
-
+# df= pd.read_csv("workingQuestionnaireSmpl.csv").iloc[:, 1:]
+# df = df.sample(frac=1).reset_index(drop=True)
+# df= pd.read_excel("workingQuestionnaire_descTry.xlsx").iloc[:, 11:]
 ################################################
 ####Preliminary analysis of correlations via correlation matrix
 ################################################
@@ -748,7 +749,8 @@ corrMatrixItemDrop7["n_values_in_range"] = corrMatrixItemDrop7.apply(
 
 
 
-
+#number of factors?
+_HornParallelAnalysis(dfItemDrop7)
 
 ####Set values to EFA object
 facanalItemDrop7 = EFA('Second cross-loading item dropped', 'kmo', 'bartlett', 'eigenvalues', 'kaiser', 'horn', 'loadings', 'cumvar', 'cronbach')
@@ -780,5 +782,5 @@ factorLoadings.columns = ['Office climate', 'Provisions', 'Nature', 'Aesthetics'
                           'Interpersonal communication', 'Solitary work', 'Open plan office', 'Autonomy']
 
 ##outputting to excel and csv
-# factorLoadings.to_excel("FactorLoadings.xlsx")
-# factorLoadings.to_csv("FactorLoadings.csv")
+# factorLoadings.to_excel("FactorLoadingsNew.xlsx")
+# factorLoadings.to_csv("FactorLoadingsNew.csv")
